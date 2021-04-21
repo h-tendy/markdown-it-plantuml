@@ -2,6 +2,8 @@
 //
 'use strict';
 
+var cntr = 1;
+
 module.exports = function umlPlugin(md, options) {
 
   function generateSourceDefault(umlCode, pluginOptions) {
@@ -123,14 +125,34 @@ module.exports = function umlPlugin(md, options) {
       altToken
     );
 
+    let idStr = `plantuml_${cntr}`; cntr++;
     token = state.push('uml_diagram', 'img', 0);
     // alt is constructed from children. No point in populating it here.
-    token.attrs = [ [ 'src', generateSource(contents, options) ], [ 'alt', '' ] ];
+    token.attrs = [ [ 'src', '#' ], [ 'alt', '' ], [ 'id', idStr] ];
     token.block = true;
     token.children = altToken;
     token.info = params;
     token.map = [ startLine, nextLine ];
     token.markup = markup;
+
+    {
+      var xhr = new XMLHttpRequest();
+      let imgUrl = generateSource(contents, options);
+      xhr.open('GET', imgUrl, true);
+      xhr.responseType = 'blob';
+      xhr.onload = function (e) {
+          var imgBlob = xhr.response;
+          var fr = new FileReader();
+          fr.onload = function(e) {
+              let curImg = document.querySelector(`#${idStr}`);
+              if (curImg) {
+                curImg.src = fr.result;
+              }
+          };
+          fr.readAsDataURL(imgBlob);
+      };
+      xhr.send(null);      
+    }
 
     state.line = nextLine + (autoClosed ? 1 : 0);
 
